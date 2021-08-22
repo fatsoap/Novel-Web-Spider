@@ -4,8 +4,22 @@ const fs = require('fs')
 
 const root_folder = "library"
 const root_url = "https://www.ttkan.co/novel/chapters/futianshi-jingwuhen";
-const domain_url = "https://www.bg3.co";
-const chapter_url = "https://www.bg3.co/novel/pagea/futianshi-jingwuhen_2705.html";
+//const domain_url = "https://www.bg3.co";
+
+const GetAllChapter = async (all_ch_url) => {
+	const { data } = await axios.get(all_ch_url);
+	const novel_en = all_ch_url.replace(/.*novel_id=/, '');
+	const _list = data.items;
+	let list = [];
+	_list.map((l) => {
+		list.push({
+			link: `https://www.bg3.co/novel/pagea/${novel_en}_${l.chapter_id}.html`,
+			chapter_name: l.chapter_name
+		});
+	})
+
+	return list;
+}
 
 const DownloadChapter = async (dir, title, url) => {
 	const { data } = await axios.get(url);
@@ -31,17 +45,11 @@ const DownloadNovel = async (url) => {
 	const chapters = $('div.chapter_cell');
 	const _novel_name = $('h3.chapters_title');
 	const novel_title = _novel_name['0'].children[0].data.replace(" 最近章節", "");
-	let chapter_list = [];
-	const len = chapters.length;
-	for(let i=0; i<len; i++) {
-		try {
-			let title = chapters[i.toString()].children[0].children[0].data;
-			let link = domain_url + chapters[i.toString()].children[0].attribs.href;
-			chapter_list.push({ title, link });
-		} catch(err) {
-			// do nothing
-		}
-	}
+	let all_ch_ = $('button#button_show_all_chatper')['0'].attribs.on;
+	all_ch_ = all_ch_.replace(/.*\({/, '{').replace(/}\).*/, '}').replace("srcUrl", `"srcUrl"`).replace(/[']/g, '"');
+	all_ch_url = "https://tw.ttkan.co" + JSON.parse(all_ch_).srcUrl;
+	chapter_list = await GetAllChapter(all_ch_url)
+	
 	try {
 		fs.mkdirSync(`./${root_folder}`);
 	} catch (err) {
@@ -52,14 +60,17 @@ const DownloadNovel = async (url) => {
 	} catch (err) {
 		// path exist
 	}
-
-	chapter_list.map(async (ch) => {
-		await DownloadChapter(novel_title, ch.title, ch.link);
-	})
+	chapter_list = chapter_list.slice(0, 30);
+	process.stdout.write(`Downloading Novel ${novel_title} ... \n`);
+	for(let i=0; i<chapter_list.length; i++) {
+		const dots = ".".repeat(i+1)
+		const left = chapter_list.length - i - 1
+		const empty = " ".repeat(left)
+		process.stdout.write(`\r[${dots}${empty}] ${i+1}/${chapter_list.length}%`)
+		await DownloadChapter(novel_title, chapter_list[i].chapter_name, chapter_list[i].link);
+	}
 }
 
-//DownloadEpisode(episode_url);
-DownloadNovel(root_url);
 
-//https://img001.tongrenshuangbaozhaoshang.com/images/comic/2019/4036371/36fceecf4f.jpg!page-800-x
-//https://img001.tongrenshuangbaozhaoshang.com/images/comic/2019/4036371/3643cbfeed.jpg!page-800-x
+
+DownloadNovel(root_url);
