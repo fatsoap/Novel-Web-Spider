@@ -1,3 +1,12 @@
+/*
+ * Author: fatsoap
+ * Description:
+ *   Novel Downloader using web spider
+ *   Just for practice :)
+ */
+
+
+
 const cheerio = require('cheerio');
 const axios = require('axios');
 const fs = require('fs')  
@@ -66,11 +75,16 @@ const DownloadNovel = async (url) => {
 		const dots = ".".repeat(i+1)
 		const left = chapter_list.length - i - 1
 		const empty = " ".repeat(left)
-		process.stdout.write(`\r[${dots}${empty}] ${i+1}/${chapter_list.length}%`)
+		process.stdout.write(`\r[${dots}${empty}] ${i+1}/${chapter_list.length}`)
 		await DownloadChapter(novel_title, chapter_list[i].chapter_name, chapter_list[i].link);
 	}
 }
 
 
+let download_url = process.argv[2];
+if (download_url) {
+	DownloadNovel(download_url);
+} else {
+	console.log("No Input Url ... ")
+}
 
-DownloadNovel(root_url);
